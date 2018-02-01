@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.circle {
+  fill: #000;
+  stroke: transparent;
+  stroke-width: 20px;
+}
+
+.visited {
+  fill: "red";
+}
+
+.active {
+  fill: transparent;
+  stroke: transparent;
+}
+.line {
+  fill: none;
+  stroke: DarkGreen;
+  stroke-width: 1.5px;
+}
+
+</style>
+<svg width="800" height="800"></svg>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+
+const NUM_X = 5;
+const NUM_Y = 5;
+const WIDTH = 800;
+const HEIGHT = 800;
+const RADIUS = 10;
+const RADIUS_BOARD = 5;
+const RADIUS_DRAG = 10;
+
+var svg = d3.select("svg");
+
+var circles = d3.range(NUM_X * NUM_Y).map(function(c, n) {
+  // NUM_X * NUM_Yに並べる 
+  return {
+    x: (WIDTH/(NUM_X+1)) * ((n % NUM_X) + 1),
+    y: (HEIGHT/(NUM_Y+1)) * (Math.floor(n / NUM_Y) + 1)
+  };
+});
+
+var color = d3.scaleOrdinal()
+    .range(d3.schemeCategory20);
+
+var lines = [];
+
+function repaint() {
+  svg.selectAll("circle.board")
+  .data(circles)
+  .enter().append("circle")
+    .attr("class", "board")
+    .attr("cx", function(d) { return d.x; })
+    .attr("cy", function(d) { return d.y; })
+    .attr("r", RADIUS_BOARD)
+    //.style("fill", function(d, i) { return color(i); });
+    .style("fill", "black");
+
+  svg.selectAll("circle.drag")
+  .data(circles)
+  .enter().append("circle")
+    .attr("class", "drag")
+    .attr("cx", function(d) { return d.x; })
+    .attr("cy", function(d) { return d.y; })
+    .attr("r", RADIUS_DRAG)
+    .style("fill", "transparent")
+    .each(function(d) {
+            console.log(d);
+            if(!d.visited)
+        d3.select(this).call(d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended));
+    });
+}
+repaint();
+/*
+function repaint() {
+  var cs = svg.selectAll("circle").select(".board")
+    .data(circles);
+  console.log(cs);
+  console.log(circles);
+    cs.attr("cx", function(d) { return d.x; })
+    .attr("cy", function(d) { return d.y; })
+    .attr("r", RADIUS)
+    .attr("class", "circle")
+    .attr("class", "board")
+    .style("fill", "red")
+    .call(d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended));
+}
+*/
+
+
+var cur_line = null;
+var line_org_x;
+var line_org_y;
+
+function colision(ev) {
+  for(c of circles) {
+    if (!c.visited) {
+      //console.log(c.x, c.y);
+      if ((c.x - ev.x)*(c.x - ev.x) + (c.y - ev.y) * (c.y - ev.y) < RADIUS*RADIUS) {
+        if (cur_line != null) {
+          //console.log(cur_line);
+          cur_line.remove();
+        }
+        lines.push([[line_org_x, line_org_y], [c.x, c.y]]);
+        svg.selectAll("path").data(lines).enter().append("path")
+          .attr("d", function(d) {
+            return "M"+d[0][0] + " " + d[0][1] + "L"+d[1][0] + " " + d[1][1];
+          })
+          .attr("class", "line");
+        console.log("衝突!");
+        line_org_x = c.x;
+        line_org_y = c.y;
+        c.visited = true;
+        return c;
+      }
+    }
+  }
+  return null;
+}
+
+function dragstarted(d) {
+  console.log("------", this);
+  console.log(d);
+  line_org_x = d.x;
+  line_org_y = d.y;
+  d3.select(this).classed("active", true).classed("board", false);
+  var c = colision(d);
+  //console.log(c);
+  //console.log(circles);
+}
+
+var line = d3.line().x(function(d) {return d.x;}).y(function(d){return d.y;});
+
+
+function dragged(d) {
+  d3.select(this).attr("cx", d3.event.x).attr("cy", d3.event.y);
+  if (cur_line != null) {
+    //console.log(cur_line);
+    cur_line.remove();
+  }
+  // 衝突判定
+  var c = colision(d3.event);
+  if (c != null) {
+    // TODO そこまでの線を確定
+    // TODO 訪問済の丸の装飾
+    repaint();
+    
+  }
+  cur_line = d3.select(this.parentNode).append("path").datum([{x:line_org_x,y:line_org_y}, {x:d3.event.x, y:d3.event.y}]).attr("class", "line").attr("d", line);
+}
+
+function dragended(d) {
+  if (cur_line) {
+    cur_line.remove();
+    cur_line = null;
+  }
+  d3.select(this).remove();
+}
+
+</script>
