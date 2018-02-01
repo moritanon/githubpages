@@ -32,8 +32,8 @@ const NUM_Y = 5;
 const WIDTH = 800;
 const HEIGHT = 800;
 const RADIUS = 10;
-const RADIUS_BOARD = 10 ;
-const RADIUS_DRAG = 20;
+const RADIUS_BOARD = 15 ;
+const RADIUS_DRAG = 25;
 
 var svg = d3.select("svg");
 
@@ -107,7 +107,7 @@ function colision(ev) {
   for(c of circles) {
     if (!c.visited) {
       //console.log(c.x, c.y);
-      if ((c.x - ev.x)*(c.x - ev.x) + (c.y - ev.y) * (c.y - ev.y) < RADIUS*RADIUS) {
+      if ((c.x - ev.x)*(c.x - ev.x) + (c.y - ev.y) * (c.y - ev.y) < RADIUS_DRAG*RADIUS_DRAG) {
         if (cur_line != null) {
           //console.log(cur_line);
           cur_line.remove();
