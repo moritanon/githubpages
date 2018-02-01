@@ -71,11 +71,14 @@ function repaint() {
     .style("fill", "transparent")
     .each(function(d) {
             console.log(d);
-            if(!d.visited)
+            if(!d.visited){
         d3.select(this).call(d3.drag()
         .on("start", dragstarted)
         .on("drag", dragged)
         .on("end", dragended));
+         } else{
+           d3.select(this).classed("active", true);
+           }
     });
 }
 repaint();
