@@ -32,8 +32,8 @@ const NUM_Y = 5;
 const WIDTH = 800;
 const HEIGHT = 800;
 const RADIUS = 10;
-const RADIUS_BOARD = 10 ;
-const RADIUS_DRAG = 20;
+const RADIUS_BOARD = 13 ;
+const RADIUS_DRAG = 25;
 
 var svg = d3.select("svg");
 
@@ -50,7 +50,7 @@ var color = d3.scaleOrdinal()
 
 var lines = [];
 
-function repaint() {
+function paint() {
   svg.selectAll("circle.board")
   .data(circles)
   .enter().append("circle")
@@ -78,25 +78,21 @@ function repaint() {
         .on("end", dragended));
     });
 }
-repaint();
-/*
+paint();
 function repaint() {
-  var cs = svg.selectAll("circle").select(".board")
+  var cs = svg.selectAll("circle.board")
     .data(circles);
   console.log(cs);
   console.log(circles);
     cs.attr("cx", function(d) { return d.x; })
     .attr("cy", function(d) { return d.y; })
-    .attr("r", RADIUS)
+    .attr("r", RADIUS_BOARD)
     .attr("class", "circle")
     .attr("class", "board")
-    .style("fill", "red")
-    .call(d3.drag()
-        .on("start", dragstarted)
-        .on("drag", dragged)
-        .on("end", dragended));
+    .style("fill", function(d) {
+        if (d.visited) return "red";
+        return "black";})
 }
-*/
 
 
 var cur_line = null;
@@ -107,7 +103,7 @@ function colision(ev) {
   for(c of circles) {
     if (!c.visited) {
       //console.log(c.x, c.y);
-      if ((c.x - ev.x)*(c.x - ev.x) + (c.y - ev.y) * (c.y - ev.y) < RADIUS*RADIUS) {
+      if ((c.x - ev.x)*(c.x - ev.x) + (c.y - ev.y) * (c.y - ev.y) < RADIUS_DRAG*RADIUS_DRAG) {
         if (cur_line != null) {
           //console.log(cur_line);
           cur_line.remove();
@@ -136,6 +132,9 @@ function dragstarted(d) {
   line_org_y = d.y;
   d3.select(this).classed("active", true).classed("board", false);
   var c = colision(d);
+  if (c) {
+    repaint();
+  }
   //console.log(c);
   //console.log(circles);
 }
