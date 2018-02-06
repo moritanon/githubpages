@@ -23,6 +23,8 @@
 }
 
 </style>
+
+<audio id="sound" src="decision10.mp3" preload="auto"></audio>
 <svg width="800" height="800"></svg>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
@@ -32,10 +34,62 @@ const NUM_Y = 5;
 const WIDTH = 800;
 const HEIGHT = 800;
 const RADIUS = 10;
-const RADIUS_BOARD = 13 ;
+const RADIUS_BOARD = 15 ;
 const RADIUS_DRAG = 25;
 
+var soundBuffer=null;
+window.AudioContext = window.AudioContext || window.webkitAudioContext;  
+var context = new AudioContext();
+
 var svg = d3.select("svg");
+var audio = d3.select("#sound").node(0);
+
+audio.src = "decision10.mp3";
+
+var getAudioBuffer = function(url, fn) {  
+  var req = new XMLHttpRequest();
+  // array buffer を指定
+  req.responseType = 'arraybuffer';
+
+  req.onreadystatechange = function() {
+    if (req.readyState === 4) {
+      if (req.status === 0 || req.status === 200) {
+        // array buffer を audio buffer に変換
+        context.decodeAudioData(req.response, function(buffer) {
+          // コールバックを実行
+          fn(buffer);
+        });
+      }
+    }
+  };
+
+  req.open('GET', url, true);
+  req.send('');
+};
+
+var playing = false;
+var curSource =null;
+// サウンドを再生
+var playSound = function(buffer, fn) {  
+  // source を作成
+  if (playing) {
+    if (curSource != null)
+    curSource.stop();
+  } 
+  
+  curSource = context.createBufferSource();
+  curSource.onended = function() {
+    if (fn) fn();
+    playing = false;
+  };
+  // buffer をセット
+  curSource.buffer = buffer;
+  // context に connect
+  curSource.connect(context.destination);
+  // 再生
+  curSource.start(0);
+  playing = true;
+};
 
 var circles = d3.range(NUM_X * NUM_Y).map(function(c, n) {
   // NUM_X * NUM_Yに並べる 
@@ -70,20 +124,22 @@ function paint() {
     .attr("r", RADIUS_DRAG)
     .style("fill", "transparent")
     .each(function(d) {
-            console.log(d);
-            if(!d.visited)
+            //console.log(d);
+            if(!d.visited){
         d3.select(this).call(d3.drag()
         .on("start", dragstarted)
         .on("drag", dragged)
         .on("end", dragended));
+         } else{
+           d3.select(this).classed("active", true);
+           }
     });
 }
-paint();
 function repaint() {
   var cs = svg.selectAll("circle.board")
     .data(circles);
-  console.log(cs);
-  console.log(circles);
+  //console.log(cs);
+  //console.log(circles);
     cs.attr("cx", function(d) { return d.x; })
     .attr("cy", function(d) { return d.y; })
     .attr("r", RADIUS_BOARD)
@@ -114,7 +170,7 @@ function colision(ev) {
             return "M"+d[0][0] + " " + d[0][1] + "L"+d[1][0] + " " + d[1][1];
           })
           .attr("class", "line");
-        console.log("衝突!");
+        //console.log("衝突!");
         line_org_x = c.x;
         line_org_y = c.y;
         c.visited = true;
@@ -133,6 +189,8 @@ function dragstarted(d) {
   d3.select(this).classed("active", true).classed("board", false);
   var c = colision(d);
   if (c) {
+    playSound(soundBuffer);
+    navigator.vibrate(100);
     repaint();
   }
   //console.log(c);
@@ -140,7 +198,6 @@ function dragstarted(d) {
 }
 
 var line = d3.line().x(function(d) {return d.x;}).y(function(d){return d.y;});
-
 
 function dragged(d) {
   d3.select(this).attr("cx", d3.event.x).attr("cy", d3.event.y);
@@ -153,8 +210,10 @@ function dragged(d) {
   if (c != null) {
     // TODO そこまでの線を確定
     // TODO 訪問済の丸の装飾
+    navigator.vibrate(100);
+    playSound(soundBuffer);
+
     repaint();
-    
   }
   cur_line = d3.select(this.parentNode).append("path").datum([{x:line_org_x,y:line_org_y}, {x:d3.event.x, y:d3.event.y}]).attr("class", "line").attr("d", line);
 }
@@ -167,4 +226,12 @@ function dragended(d) {
   d3.select(this).remove();
 }
 
+console.log("start");
+
+getAudioBuffer("decision10.mp3", function(buffer) {
+  console.log(buffer);
+  soundBuffer = buffer;
+  paint();
+  console.log("init done");
+});
 </script>
