@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.active {
+  stroke: #000;
+  stroke-width: 2px;
+}
+
+</style>
+<svg width="960" height="1000"></svg>
+<script src="//d3js.org/d3.v4.min.js"></script>
+<script>
+
+var soundBuffer=null;
+window.AudioContext = window.AudioContext || window.webkitAudioContext;  
+var context = new AudioContext();
+
+var svg = d3.select("svg");
+
+var getAudioBuffer = function(url, fn) {  
+  var req = new XMLHttpRequest();
+  // array buffer を指定
+  req.responseType = 'arraybuffer';
+
+  req.onreadystatechange = function() {
+    if (req.readyState === 4) {
+      if (req.status === 0 || req.status === 200) {
+        // array buffer を audio buffer に変換
+        context.decodeAudioData(req.response, function(buffer) {
+        // コールバックを実行
+        fn(buffer);
+        });
+      }
+    }
+  };
+  req.open('GET', url, true);
+  req.send('');
+};
+
+var soundBuffer = null;
+var playing = false;
+var curSource =null;
+// サウンドを再生
+var playSound = function(buffer, fn) {  
+    // source を作成
+  if (playing) {
+    if (curSource != null)
+      curSource.stop();
+  } 
+      
+  curSource = context.createBufferSource();
+  curSource.onended = function() {
+    if (fn) fn();
+    playing = false;
+  };
+  // buffer をセット
+  curSource.buffer = buffer;
+  // context に connect
+  curSource.connect(context.destination);
+  // 再生
+  curSource.start(0);
+  playing = true;
+};
+
+var svg = d3.select("svg"),
+    width = +svg.attr("width"),
+    height = +svg.attr("height"),
+    radius = 64;
+
+var circles = d3.range(20).map(function() {
+  return {
+    x: Math.round(Math.random() * (width - radius * 2) + radius),
+    y: Math.round(Math.random() * (height - radius * 2) + radius)
+  };
+});
+
+var color = d3.scaleOrdinal()
+    .range(d3.schemeCategory20);
+
+
+function paint() {
+  svg.selectAll("circle")
+    .data(circles)
+    .enter().append("circle")
+    .attr("cx", function(d) { return d.x; })
+    .attr("cy", function(d) { return d.y; })
+    .attr("r", radius)
+    .style("fill", function(d, i) { return color(i); })
+    .call(d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended));
+}
+
+function dragstarted(d) {
+  d3.select(this).raise().classed("active", true);
+  playSound(soundBuffer);
+}
+
+function dragged(d) {
+  d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
+}
+
+function dragended(d) {
+  d3.select(this).classed("active", false);
+}
+
+getAudioBuffer("button14.mp3", function(buffer) {
+  console.log(buffer);
+  soundBuffer = buffer;
+  paint();
+  console.log("init done");
+});   
+
+</script>
+
