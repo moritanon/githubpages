@@ -96,6 +96,7 @@ function paint() {
 function dragstarted(d) {
   d3.select(this).raise().classed("active", true);
   playSound(soundBuffer);
+  navigator.vibrate(100);
 }
 
 function dragged(d) {
